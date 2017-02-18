@@ -14,6 +14,7 @@
 package org.openmrs.module.reporting.cohort.definition.evaluator;
 
 import org.openmrs.Cohort;
+import org.openmrs.Location;
 import org.openmrs.Patient;
 import org.openmrs.annotation.Handler;
 import org.openmrs.module.reporting.cohort.EvaluatedCohort;
@@ -21,6 +22,7 @@ import org.openmrs.module.reporting.cohort.definition.AllPatientsCohortDefinitio
 import org.openmrs.module.reporting.cohort.definition.CohortDefinition;
 import org.openmrs.module.reporting.cohort.definition.CompositionCohortDefinition;
 import org.openmrs.module.reporting.cohort.definition.service.CohortDefinitionService;
+import org.openmrs.module.reporting.definition.DefinitionUtil;
 import org.openmrs.module.reporting.evaluation.EvaluationContext;
 import org.openmrs.module.reporting.evaluation.EvaluationException;
 import org.openmrs.module.reporting.evaluation.parameter.Mapped;
@@ -28,6 +30,8 @@ import org.openmrs.module.reporting.query.IdSet;
 import org.openmrs.module.reporting.query.evaluator.CompositionQueryEvaluator;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -46,6 +50,7 @@ public class CompositionCohortDefinitionEvaluator extends CompositionQueryEvalua
 
 	@Override
 	protected IdSet<Patient> evaluateQuery(Mapped<CohortDefinition> query, EvaluationContext context) throws EvaluationException {
+		context = getModifiedEvaluationContext(context);
 		return cohortDefinitionService.evaluate(query, context);
 	}
 
@@ -59,7 +64,19 @@ public class CompositionCohortDefinitionEvaluator extends CompositionQueryEvalua
 	 * @see CohortDefinitionEvaluator#evaluate(CohortDefinition, EvaluationContext)
      */
     public EvaluatedCohort evaluate(CohortDefinition cohortDefinition, EvaluationContext context) throws EvaluationException {
-		Set<Integer> ids = evaluateToIdSet(cohortDefinition, context).getMemberIds();
+		context = getModifiedEvaluationContext(context);
+    	Set<Integer> ids = evaluateToIdSet(cohortDefinition, context).getMemberIds();
 		return new EvaluatedCohort(new Cohort(ids), cohortDefinition, context);
     }
+
+    private EvaluationContext getModifiedEvaluationContext(EvaluationContext context) {
+		final Boolean includeChildLocations = (Boolean) context.getParameterValue("includeChildLocations");
+		if (includeChildLocations != null && includeChildLocations) {
+			final List<Location> locationList = (List<Location>) context.getParameterValue("locationList");
+			Map<String, Object> parameterValues = context.getParameterValues();
+			parameterValues.put("locationList", DefinitionUtil.getAllLocationsAndChildLocations(locationList));
+			context.setParameterValues(parameterValues);
+		}
+    	return context;
+	}
 }
