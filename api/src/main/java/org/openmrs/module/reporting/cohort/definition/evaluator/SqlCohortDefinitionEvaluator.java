@@ -65,7 +65,18 @@ public class SqlCohortDefinitionEvaluator implements CohortDefinitionEvaluator {
 
 		final Boolean includeChildLocations = (Boolean) context.getParameterValue("includeChildLocations");
 		if (includeChildLocations != null && includeChildLocations) {
-			final List<Location> locationList = (List<Location>) context.getParameterValue("locationList");
+
+			List<Location> locationList = null;
+
+			try {
+				locationList = (List<Location>) context.getParameterValue("locationList");
+			}
+			catch (ClassCastException ex) {
+				Location location = (Location) context.getParameterValue("locationList");
+				locationList = new ArrayList<Location>();
+				locationList.add(location);
+			}
+
 			final Map<String, Object> parameterValues = context.getParameterValues();
 			parameterValues.put("locationList", getLocationsIncludingChildLocations(locationList));
 			context.setParameterValues(parameterValues);
